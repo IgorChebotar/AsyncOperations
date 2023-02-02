@@ -24,9 +24,12 @@ namespace SimpleMan.AsyncOperations
 
             while (Time.time < endTime)
             {
-                EAsyncOperationResult skipFramesResult = await SkipFrames(skipFrames);
-                if (skipFramesResult == EAsyncOperationResult.CanceledBySystem)
-                    return EAsyncOperationResult.CanceledBySystem;
+                if (skipFrames > 0)
+                {
+                    EAsyncOperationResult skipFramesResult = await SkipFrames(skipFrames);
+                    if (skipFramesResult == EAsyncOperationResult.CanceledBySystem)
+                        return EAsyncOperationResult.CanceledBySystem;
+                }
 
                 if (cancelCondition.Exist() && cancelCondition())
                 {
@@ -82,9 +85,12 @@ namespace SimpleMan.AsyncOperations
 
             while (Time.unscaledTime < endTime)
             {
-                EAsyncOperationResult skipFramesResult = await SkipFrames(skipFrames);
-                if (skipFramesResult == EAsyncOperationResult.CanceledBySystem)
-                    return EAsyncOperationResult.CanceledBySystem;
+                if (skipFrames > 0)
+                {
+                    EAsyncOperationResult skipFramesResult = await SkipFrames(skipFrames);
+                    if (skipFramesResult == EAsyncOperationResult.CanceledBySystem)
+                        return EAsyncOperationResult.CanceledBySystem;
+                }
 
                 if (cancelCondition.Exist() && cancelCondition())
                 {
@@ -184,32 +190,29 @@ namespace SimpleMan.AsyncOperations
         }
 
         /// <summary>
-        /// Waits until [complete condition] return true
+        /// Waits while [continue cycle condition] return true
         /// </summary>
-        /// <param name="completeCondition"></param>
+        /// <param name="continueCycleCondition"></param>
         /// <param name="cancelCondition">Use this parameter if you need to stop waiting</param>
         /// <param name="onComplete">Invokes when process is complete</param>
         /// <param name="onCanceled">Invokes when process stopped by [cancel condition]</param>
         /// <param name="skipFrames">Frames to skip</param>
         /// <returns></returns>
         /// <exception cref="ArgumentNullException"></exception>
-        public static async Task<EAsyncOperationResult> WaitUntil(Func<bool> completeCondition, Func<bool> cancelCondition, Action onComplete, Action onCanceled, byte skipFrames = 0)
+        public static async Task<EAsyncOperationResult> WaitWhile(Func<bool> continueCycleCondition, Action onComplete, byte skipFrames = 0)
         {
-            if (completeCondition.NotExist())
+            if (continueCycleCondition.NotExist())
             {
-                throw new ArgumentNullException(nameof(completeCondition));
+                throw new ArgumentNullException(nameof(continueCycleCondition));
             }
 
-            while (!completeCondition.Invoke())
+            while (continueCycleCondition.Invoke())
             {
-                EAsyncOperationResult skipFramesResult = await SkipFrames(skipFrames);
-                if (skipFramesResult == EAsyncOperationResult.CanceledBySystem)
-                    return EAsyncOperationResult.CanceledBySystem;
-
-                if (cancelCondition.Exist() && cancelCondition())
+                if (skipFrames > 0)
                 {
-                    onCanceled?.Invoke();
-                    return EAsyncOperationResult.Canceled;
+                    EAsyncOperationResult skipFramesResult = await SkipFrames(skipFrames);
+                    if (skipFramesResult == EAsyncOperationResult.CanceledBySystem)
+                        return EAsyncOperationResult.CanceledBySystem;
                 }
 
                 await Task.Yield();
@@ -220,44 +223,59 @@ namespace SimpleMan.AsyncOperations
         }
 
         /// <summary>
-        /// Waits until [complete condition] return true
+        /// Waits while [continue cycle condition] return true
         /// </summary>
-        /// <param name="completeCondition"></param>
-        /// <param name="cancelCondition">Use this parameter if you need to stop waiting</param>
+        /// <param name="continueCycleCondition"></param>
         /// <param name="skipFrames">Frames to skip</param>
         /// <returns></returns>
-        public static async Task<EAsyncOperationResult> WaitUntil(Func<bool> completeCondition, Func<bool> cancelCondition, byte skipFrames = 0)
+        public static async Task<EAsyncOperationResult> WaitWhile(Func<bool> continueCycleCondition, byte skipFrames = 0)
         {
-            return await WaitUntil(completeCondition, cancelCondition, null, null, skipFrames);
+            return await WaitWhile(continueCycleCondition, null, skipFrames);
         }
 
         /// <summary>
-        /// Waits until [complete condition] return true
+        /// Waits until [brake cycle condition] return true
         /// </summary>
-        /// <param name="completeCondition"></param>
-        /// <param name="skipFrames">Frames to skip</param>
-        /// <returns></returns>
-        public static async Task<EAsyncOperationResult> WaitUntil(Func<bool> completeCondition, byte skipFrames = 0)
-        {
-            return await WaitUntil(completeCondition, null, null, null, skipFrames);
-        }
-
-        /// <summary>
-        /// Calls [on tick] delegate each [skip frames] frames until the [complete condition] returning false
-        /// </summary>
-        /// <param name="completeCondition"></param>
-        /// <param name="cancelCondition">Use this parameter if you need to stop waiting</param>
-        /// <param name="onTick">Called every tick (after each [skip frames] frames)</param>
+        /// <param name="brakeCycleCondition"></param>
         /// <param name="onComplete">Invokes when process is complete</param>
-        /// <param name="onCanceled">Invokes when process stopped by [cancel condition]</param>
         /// <param name="skipFrames">Frames to skip</param>
         /// <returns></returns>
         /// <exception cref="ArgumentNullException"></exception>
-        public static async Task<EAsyncOperationResult> RepeatUntil(Func<bool> completeCondition, Func<bool> cancelCondition, Action onTick, Action onComplete, Action onCanceled, byte skipFrames = 0)
+        public static async Task<EAsyncOperationResult> WaitUntil(Func<bool> brakeCycleCondition, Action onComplete, byte skipFrames = 0)
         {
-            if (completeCondition.NotExist())
+            if (brakeCycleCondition.NotExist())
             {
-                throw new ArgumentNullException(nameof(completeCondition));
+                throw new ArgumentNullException(nameof(brakeCycleCondition));
+            }
+
+            return await WaitWhile(() => !brakeCycleCondition(), onComplete, skipFrames);
+        }
+
+        /// <summary>
+        /// Waits until [brake cycle condition] return true
+        /// </summary>
+        /// <param name="brakeCycleCondition"></param>
+        /// <param name="skipFrames">Frames to skip</param>
+        /// <returns></returns>
+        public static async Task<EAsyncOperationResult> WaitUntil(Func<bool> brakeCycleCondition, byte skipFrames = 0)
+        {
+            return await WaitUntil(brakeCycleCondition, null, skipFrames);
+        }
+
+        /// <summary>
+        /// Calls [on tick] delegate each [skip frames] frames while the [continue cycle condition] returning true
+        /// </summary>
+        /// <param name="continueCycleCondition"></param>
+        /// <param name="onTick">Called every tick (after each [skip frames] frames)</param>
+        /// <param name="onComplete">Invokes when process is complete</param>
+        /// <param name="skipFrames">Frames to skip</param>
+        /// <returns></returns>
+        /// <exception cref="ArgumentNullException"></exception>
+        public static async Task<EAsyncOperationResult> RepeatWhile(Func<bool> continueCycleCondition, Action onTick, Action onComplete, byte skipFrames = 0)
+        {
+            if (continueCycleCondition.NotExist())
+            {
+                throw new ArgumentNullException(nameof(continueCycleCondition));
             }
 
             if (onTick.NotExist())
@@ -265,16 +283,13 @@ namespace SimpleMan.AsyncOperations
                 throw new ArgumentNullException(nameof(onTick));
             }
 
-            while (!completeCondition.Invoke())
+            while (continueCycleCondition.Invoke())
             {
-                EAsyncOperationResult skipFramesResult = await SkipFrames(skipFrames);
-                if (skipFramesResult == EAsyncOperationResult.CanceledBySystem)
-                    return EAsyncOperationResult.CanceledBySystem;
-
-                if (cancelCondition.Exist() && cancelCondition())
+                if(skipFrames > 0)
                 {
-                    onCanceled?.Invoke();
-                    return EAsyncOperationResult.Canceled;
+                    EAsyncOperationResult skipFramesResult = await SkipFrames(skipFrames);
+                    if (skipFramesResult == EAsyncOperationResult.CanceledBySystem)
+                        return EAsyncOperationResult.CanceledBySystem;
                 }
 
                 onTick?.Invoke();
@@ -286,28 +301,53 @@ namespace SimpleMan.AsyncOperations
         }
 
         /// <summary>
-        /// Calls [on tick] delegate each [skip frames] frames until the [complete condition] returning false
+        /// Calls [on tick] delegate each [skip frames] frames while the [continue cycle condition] returning true
         /// </summary>
-        /// <param name="completeCondition"></param>
-        /// <param name="cancelCondition">Use this parameter if you need to stop waiting</param>
-        /// <param name="onTick"></param>
-        /// <param name="skipFrames">Frames to skip</param>
-        /// <returns></returns>
-        public static async Task<EAsyncOperationResult> RepeatUntil(Func<bool> completeCondition, Func<bool> cancelCondition, Action onTick, byte skipFrames = 0)
-        {
-            return await RepeatUntil(completeCondition, cancelCondition, onTick, null, null, skipFrames);
-        }
-
-        /// <summary>
-        /// Calls [on tick] delegate each [skip frames] frames until the [complete condition] returning false
-        /// </summary>
-        /// <param name="completeCondition"></param>
+        /// <param name="continueCycleCondition"></param>
         /// <param name="onTick">Called every tick (after each [skip frames] frames)</param>
         /// <param name="skipFrames">Frames to skip</param>
         /// <returns></returns>
-        public static async Task<EAsyncOperationResult> RepeatUntil(Func<bool> completeCondition, Action onTick, byte skipFrames = 0)
+        public static async Task<EAsyncOperationResult> RepeatWhile(Func<bool> continueCycleCondition, Action onTick, byte skipFrames = 0)
         {
-            return await RepeatUntil(completeCondition, null, onTick, null, null, skipFrames);
+            return await RepeatWhile(continueCycleCondition, onTick, null, skipFrames);
+        }
+
+        /// <summary>
+        /// Calls [on tick] delegate each [skip frames] frames until the [brake cycle condition] return true
+        /// </summary>
+        /// <param name="brakeCycleCondition"></param>
+        /// <param name="onTick">Called every tick (after each [skip frames] frames)</param>
+        /// <param name="onComplete">Invokes when process is complete</param>
+        /// <param name="skipFrames">Frames to skip</param>
+        /// <returns></returns>
+        /// <exception cref="ArgumentNullException"></exception>
+        public static async Task<EAsyncOperationResult> RepeatUntil(Func<bool> brakeCycleCondition, Action onTick, Action onComplete, byte skipFrames = 0)
+        {
+            if (brakeCycleCondition.NotExist())
+            {
+                throw new ArgumentNullException(nameof(brakeCycleCondition));
+            }
+
+            return await RepeatWhile(() => !brakeCycleCondition(), onTick, onComplete, skipFrames);
+        }
+
+        /// <summary>
+        /// Calls [on tick] delegate each [skip frames] frames until the [brake cycle condition] return true
+        /// </summary>
+        /// <param name="brakeCycleCondition"></param>
+        /// <param name="onTick">Called every tick (after each [skip frames] frames)</param>
+        /// <param name="onComplete">Invokes when process is complete</param>
+        /// <param name="skipFrames">Frames to skip</param>
+        /// <returns></returns>
+        /// <exception cref="ArgumentNullException"></exception>
+        public static async Task<EAsyncOperationResult> RepeatUntil(Func<bool> brakeCycleCondition, Action onTick, byte skipFrames = 0)
+        {
+            if (brakeCycleCondition.NotExist())
+            {
+                throw new ArgumentNullException(nameof(brakeCycleCondition));
+            }
+
+            return await RepeatWhile(() => !brakeCycleCondition(), onTick, null, skipFrames);
         }
 
         private static bool ShouldFreeze()
