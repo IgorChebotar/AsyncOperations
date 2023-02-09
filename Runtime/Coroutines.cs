@@ -1,22 +1,22 @@
-﻿using SimpleMan.Utilities;
-using System;
+﻿using System;
 using System.Collections;
 using UnityEngine;
-
+using static SimpleMan.AsyncOperations.Assert;
 
 namespace SimpleMan.AsyncOperations
 {
     public static class Coroutines
     {
         /// <summary>
-        /// Call [onComplete] after [framesToSkip] frames
+        /// Skips the specified number of frames before executing an action.
         /// </summary>
-        /// <param name="skipFrames">Frames number beteen ticks</param>
-        /// <param name="onComplete"></param>
-        /// <returns></returns>
-        /// <exception cref="ArgumentNullException"></exception>
+        /// <param name="skipFrames">The number of frames to skip.</param>
+        /// <param name="onComplete">The action to be executed after skipping the frames.</param>
+        /// <returns>An enumerator that can be used in a coroutine.</returns>
         public static IEnumerator SkipFramesProcess(byte skipFrames, Action onComplete)
         {
+            OnCompleteExist(onComplete);
+
             while (skipFrames > 0)
             {
                 skipFrames--;
@@ -27,48 +27,43 @@ namespace SimpleMan.AsyncOperations
         }
 
         /// <summary>
-        /// Invoke [onComplete] after delay
+        /// Coroutine that waits for a specified amount of time, taking into account the given time scale.
         /// </summary>
-        /// <param name="time"></param>
-        /// <param name="onComplete"></param>
-        /// <returns></returns>
-        /// <exception cref="ArgumentNullException"></exception>
-        public static IEnumerator DelayProcess(float time, Action onComplete)
+        /// <param name="time">Amount of time to wait.</param>
+        /// <param name="timeScaleGetter">Use for pause or your custom time scale in project.</param>
+        /// <param name="onComplete">Action to perform after the specified time has elapsed.</param>
+        /// <returns>Yield instruction to wait for the specified amount of time, taking into account the given time scale.</returns>
+        public static IEnumerator DelayProcess(float time, Func<float> timeScaleGetter, Action onComplete)
         {
-            yield return new WaitForSeconds(time);
-            onComplete?.Invoke();
-        }
+            TimeNonNegative(time);
+            OnCompleteExist(onComplete);
+            TimeScaleGetterExist(timeScaleGetter);
 
-        /// <summary>
-        /// Invoke [onComplete] after delay
-        /// </summary>
-        /// <param name="time"></param>
-        /// <param name="onComplete"></param>
-        /// <returns></returns>
-        /// <exception cref="ArgumentNullException"></exception>
-        public static IEnumerator DelayProcessRealtime(float time, Action onComplete)
-        {
-            yield return new WaitForSecondsRealtime(time);
-            onComplete?.Invoke();
-        }
+            float timeLeft = time;
 
-        /// <summary>
-        /// Wait while [condition] return false and call [onComplete] when it return true
-        /// </summary>
-        /// <param name="condition"></param>
-        /// <param name="onComplete"></param>
-        /// <param name="skipFrames">Frames number beteen ticks</param>
-        /// <returns></returns>
-        /// <exception cref="ArgumentNullException"></exception>
-        public static IEnumerator WaitUntilProcess(Func<bool> condition, Action onComplete, byte skipFrames = 0)
-        {
-            if (condition.NotExist())
+            while (timeLeft >= 0)
             {
-                throw new ArgumentNullException(nameof(condition));
+                timeLeft -= Time.unscaledDeltaTime * timeScaleGetter();
+                yield return null;
             }
 
+            onComplete?.Invoke();
+        }
+
+        /// <summary>
+        /// Waits while the specified `condition` is true and then calls `onComplete` delegate.
+        /// Optionally skips `skipFrames` between each check of the `condition`.
+        /// </summary>
+        /// <param name="condition">Condition that should return false in order to stop the waiting process.</param>
+        /// <param name="onComplete">Delegate that is called when the `condition` is no longer true.</param>
+        /// <param name="skipFrames">Optional parameter that indicates how many frames to skip between each check of the `condition`.</param>
+        /// <returns>IEnumerator that can be used in a coroutine.</returns>
+        public static IEnumerator WaitFramesWhileProcess(Func<bool> condition, Action onComplete, byte skipFrames = 0)
+        {
+            OnCompleteExist(onComplete);
+
             byte framesSkipped = 0;
-            while (!condition())
+            while (condition())
             {
                 while (framesSkipped > 0)
                 {
@@ -82,79 +77,57 @@ namespace SimpleMan.AsyncOperations
         }
 
         /// <summary>
-        /// Wait while [condition] return false and call [onComplete] when it return true
+        /// Waits while the given condition is true and performs the specified action when it's false.
         /// </summary>
-        /// <param name="condition"></param>
-        /// <param name="onComplete"></param>
-        /// <param name="tickDilation">Time between ticks</param>
-        /// <returns></returns>
-        /// <exception cref="ArgumentNullException"></exception>
-        public static IEnumerator WaitUntilProcess(Func<bool> condition, Action onComplete, float tickDilation = 0)
+        /// <param name="condition">A function that returns a boolean indicating the waiting condition.</param>
+        /// <param name="onComplete">An action to be performed when the waiting is completed.</param>
+        /// <param name="timeScaleGetter">Use for pause or your custom time scale in project.</param>
+        /// <param name="tickDilation">The time to wait between each check of the waiting condition. The default value is 0.</param>
+        /// <returns>An enumerator for the coroutine.</returns>
+        public static IEnumerator WaitWhileProcess(Func<bool> condition, Action onComplete, Func<float> timeScaleGetter, float tickDilation = 0)
         {
-            if(tickDilation < 0)
+            TimeNonNegative(tickDilation);
+            OnCompleteExist(onComplete);
+            TimeScaleGetterExist(timeScaleGetter);
+
+
+            float tickTimeLeft = tickDilation;
+            while (condition())
             {
-                throw new ArgumentException(nameof(tickDilation), 
-                    "Tick dilation must be positive");
+                while (tickDilation >= 0)
+                {
+                    tickTimeLeft -= timeScaleGetter() * Time.unscaledDeltaTime;
+                    yield return null;
+                }
+
+                tickTimeLeft = tickDilation;
             }
 
-            if (condition.NotExist())
-            {
-                throw new ArgumentNullException(nameof(condition));
-            }
-
-            yield return new WaitForSeconds(tickDilation);
             onComplete?.Invoke();
         }
 
         /// <summary>
-        /// Wait while [condition] return false and call [onComplete] when it return true
+        /// Repeats an action while a condition is met. The action is executed once per frame with the option to skip frames in between. 
+        /// The action will stop when the condition is no longer met and an optional completion action is invoked.
         /// </summary>
-        /// <param name="condition"></param>
-        /// <param name="onComplete"></param>
-        /// <param name="tickDilation">Time between ticks</param>
-        /// <returns></returns>
-        /// <exception cref="ArgumentNullException"></exception>
-        public static IEnumerator WaitUntilProcessRealtime(Func<bool> condition, Action onComplete, float tickDilation = 0)
+        /// <param name="condition">The condition to be met while repeating the action</param>
+        /// <param name="onTick">The action to be executed repeatedly while the condition is met</param>
+        /// <param name="onComplete">The action to be executed when the condition is no longer met</param>
+        /// <param name="skipFrames">The number of frames to skip before executing the action again</param>
+        /// <returns>An IEnumerator for use with the coroutine API</returns>
+        public static IEnumerator RepeatFramesWhileProcess(Func<bool> condition, Action onTick, Action onComplete, byte skipFrames = 0)
         {
-            if (tickDilation < 0)
-            {
-                throw new ArgumentException(nameof(tickDilation),
-                    "Tick dilation must be positive");
-            }
-
-            if (condition.NotExist())
-            {
-                throw new ArgumentNullException(nameof(condition));
-            }
-
-            yield return new WaitForSecondsRealtime(tickDilation);
-            onComplete?.Invoke();
-        }
-
-        /// <summary>
-        /// Call action each [skip frames] frames while condition is false
-        /// </summary>
-        /// <param name="condition"></param>
-        /// <param name="onTick"></param>
-        /// <param name="onComplete"></param>
-        /// <param name="skipFrames">Frames number beteen ticks</param>
-        /// <returns></returns>
-        /// <exception cref="ArgumentNullException"></exception>
-        public static IEnumerator RepeatUntilProcess(Func<bool> condition, Action onTick, Action onComplete, byte skipFrames = 0)
-        {
-            if (condition.NotExist())
-            {
-                throw new ArgumentNullException(nameof(condition));
-            }
+            ConditionExist(condition);
 
             byte framesSkipped = 0;
-            while (!condition())
+            while (condition())
             {
                 while (framesSkipped > 0)
                 {
                     framesSkipped--;
                     yield return null;
                 }
+
                 framesSkipped = skipFrames;
                 onTick?.Invoke();
             }
@@ -163,62 +136,32 @@ namespace SimpleMan.AsyncOperations
         }
 
         /// <summary>
-        /// Call action each [skip frames] frames while condition is false
+        /// Repeats an action while a condition is met. The time between each execution of the action can be adjusted using a custom time scale. 
+        /// The action will stop when the condition is no longer met and an optional completion action is invoked.
         /// </summary>
-        /// <param name="condition"></param>
-        /// <param name="onTick"></param>
-        /// <param name="onComplete"></param>
-        /// <param name="tickDilation">Time between ticks</param>
-        /// <returns></returns>
-        /// <exception cref="ArgumentNullException"></exception>
-        public static IEnumerator RepeatUntilProcess(Func<bool> condition, Action onTick, Action onComplete, float tickDilation = 0)
+        /// <param name="condition">The condition to be met while repeating the action</param>
+        /// <param name="timeScaleGetter">Use for pause or your custom time scale in project</param>
+        /// <param name="onTick">The action to be executed repeatedly while the condition is met</param>
+        /// <param name="onComplete">The action to be executed when the condition is no longer met</param>
+        /// <param name="tickDilation">The minimum time between each action execution</param>
+        /// <returns>An IEnumerator for use with the coroutine API</returns>
+        public static IEnumerator RepeatWhileProcess(Func<bool> condition, Func<float> timeScaleGetter, Action onTick, Action onComplete, float tickDilation = 0)
         {
-            if (tickDilation < 0)
-            {
-                throw new ArgumentException(nameof(tickDilation),
-                    "Tick dilation must be positive");
-            }
+            TimeNonNegative(tickDilation);
+            ConditionExist(condition);
+            TimeScaleGetterExist(timeScaleGetter);
 
-            if (condition.NotExist())
+            float tickTimeLeft = tickDilation;
+            while (condition())
             {
-                throw new ArgumentNullException(nameof(condition));
-            }
+                while (tickDilation >= 0)
+                {
+                    tickTimeLeft -= timeScaleGetter() * Time.unscaledDeltaTime;
+                    yield return null;
+                }
 
-            while (!condition())
-            {
+                tickTimeLeft = tickDilation;
                 onTick?.Invoke();
-                yield return new WaitForSeconds(tickDilation);
-            }
-
-            onComplete?.Invoke();
-        }
-
-        /// <summary>
-        /// Call action each [skip frames] frames while condition is false
-        /// </summary>
-        /// <param name="condition"></param>
-        /// <param name="onTick"></param>
-        /// <param name="onComplete"></param>
-        /// <param name="tickDilation">Time between ticks</param>
-        /// <returns></returns>
-        /// <exception cref="ArgumentNullException"></exception>
-        public static IEnumerator RepeatUntilProcessRealtime(Func<bool> condition, Action onTick, Action onComplete, float tickDilation = 0)
-        {
-            if (tickDilation < 0)
-            {
-                throw new ArgumentException(nameof(tickDilation),
-                    "Tick dilation must be positive");
-            }
-
-            if (condition.NotExist())
-            {
-                throw new ArgumentNullException(nameof(condition));
-            }
-
-            while (!condition())
-            {
-                onTick?.Invoke();
-                yield return new WaitForSecondsRealtime(tickDilation);
             }
 
             onComplete?.Invoke();

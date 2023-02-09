@@ -36,7 +36,7 @@ namespace SimpleMan.AsyncOperationsDemo
         {
             //This process will call the 'SpawnObject' method every [_delayTime] seconds,
             //until you stop it manually
-            _routine = this.RepeatForever(SpawnObject, _delayTime);
+            _routine = this.RepeatForeverCustomTimeScale(SpawnObject, _delayTime);
 
             DisableSpawnButton();
             EnableCancelButton();
