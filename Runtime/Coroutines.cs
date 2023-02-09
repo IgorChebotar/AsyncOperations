@@ -10,16 +10,16 @@ namespace SimpleMan.AsyncOperations
         /// <summary>
         /// Skips the specified number of frames before executing an action.
         /// </summary>
-        /// <param name="skipFrames">The number of frames to skip.</param>
+        /// <param name="frames">The number of frames to skip.</param>
         /// <param name="onComplete">The action to be executed after skipping the frames.</param>
         /// <returns>An enumerator that can be used in a coroutine.</returns>
-        public static IEnumerator SkipFramesProcess(byte skipFrames, Action onComplete)
+        public static IEnumerator SkipFramesProcess(byte frames, Action onComplete)
         {
             OnCompleteExist(onComplete);
 
-            while (skipFrames > 0)
+            while (frames > 0)
             {
-                skipFrames--;
+                frames--;
                 yield return null;
             }
 
@@ -43,7 +43,7 @@ namespace SimpleMan.AsyncOperations
 
             while (timeLeft >= 0)
             {
-                timeLeft -= Time.unscaledDeltaTime * timeScaleGetter();
+                timeLeft -= Time.deltaTime * timeScaleGetter();
                 yield return null;
             }
 
@@ -62,15 +62,15 @@ namespace SimpleMan.AsyncOperations
         {
             OnCompleteExist(onComplete);
 
-            byte framesSkipped = 0;
+            byte framesLeft;
             while (condition())
             {
-                while (framesSkipped > 0)
+                framesLeft = skipFrames;
+                while (framesLeft > 0)
                 {
-                    framesSkipped--;
+                    framesLeft--;
                     yield return null;
                 }
-                framesSkipped = skipFrames;
             }
 
             onComplete?.Invoke();
@@ -91,16 +91,15 @@ namespace SimpleMan.AsyncOperations
             TimeScaleGetterExist(timeScaleGetter);
 
 
-            float tickTimeLeft = tickDilation;
+            float tickTimeLeft;
             while (condition())
             {
-                while (tickDilation >= 0)
+                tickTimeLeft = tickDilation;
+                while (tickTimeLeft > 0)
                 {
-                    tickTimeLeft -= timeScaleGetter() * Time.unscaledDeltaTime;
+                    tickTimeLeft -= timeScaleGetter() * Time.deltaTime;
                     yield return null;
                 }
-
-                tickTimeLeft = tickDilation;
             }
 
             onComplete?.Invoke();
@@ -119,17 +118,17 @@ namespace SimpleMan.AsyncOperations
         {
             ConditionExist(condition);
 
-            byte framesSkipped = 0;
+            byte framesLeft;
             while (condition())
             {
-                while (framesSkipped > 0)
+                onTick?.Invoke();
+                framesLeft = skipFrames;
+
+                while (framesLeft > 0)
                 {
-                    framesSkipped--;
+                    framesLeft--;
                     yield return null;
                 }
-
-                framesSkipped = skipFrames;
-                onTick?.Invoke();
             }
 
             onComplete?.Invoke();
@@ -151,17 +150,17 @@ namespace SimpleMan.AsyncOperations
             ConditionExist(condition);
             TimeScaleGetterExist(timeScaleGetter);
 
-            float tickTimeLeft = tickDilation;
+            float tickTimeLeft;
             while (condition())
             {
-                while (tickDilation >= 0)
-                {
-                    tickTimeLeft -= timeScaleGetter() * Time.unscaledDeltaTime;
-                    yield return null;
-                }
-
-                tickTimeLeft = tickDilation;
                 onTick?.Invoke();
+                tickTimeLeft = tickDilation;
+
+                while (tickTimeLeft > 0)
+                {
+                    tickTimeLeft -= timeScaleGetter() * Time.deltaTime;
+                    yield return null;
+                } 
             }
 
             onComplete?.Invoke();

@@ -31,7 +31,7 @@ namespace SimpleMan.AsyncOperationsDemo
             DisableButton();
 
             //Call async operation and get result of it. 
-            EAsyncOperationResult asyncOperationResult = await SafeAsync.Delay(_delayTime);
+            EAsyncOperationResult asyncOperationResult = await SafeAsync.DelayRealtime(_delayTime, null);
 
             //Always check the result of the async operation. If result is 'Canceled by system', it means 
             //that you are not in play mode anymore and you should finish this operation immidiate. Async is not 

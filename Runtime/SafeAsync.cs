@@ -9,166 +9,6 @@ namespace SimpleMan.AsyncOperations
     public static class SafeAsync
     {
         /// <summary>
-        /// Waits while time is up. Safe for using in playmode (returns 'Canceled by sytem' result on 
-        /// switching to editor mode)
-        /// </summary>
-        /// <param name="seconds">Delay in seconds</param>
-        /// <param name="cancelCondition">Use this parameter if you need to stop waiting</param>
-        /// <param name="onComplete">Invokes when process is complete</param>
-        /// <param name="onCanceled">Invokes when process stopped by [cancel condition]</param>
-        /// <param name="skipFrames">Delay in frames between checking. Use for heavy tasks or for physics checking</param>
-        /// <returns></returns>
-        public static async Task<EAsyncOperationResult> Delay(float seconds, Func<bool> cancelCondition, Action onComplete, Action onCanceled, byte skipFrames = 0)
-        {
-            float endTime = Time.time + seconds;
-
-            while (Time.time < endTime)
-            {
-                if (skipFrames > 0)
-                {
-                    EAsyncOperationResult skipFramesResult = await SkipFrames(skipFrames);
-                    if (skipFramesResult == EAsyncOperationResult.CanceledBySystem)
-                        return EAsyncOperationResult.CanceledBySystem;
-                }
-
-                if (cancelCondition.Exist() && cancelCondition())
-                {
-                    onCanceled?.Invoke();
-                    return EAsyncOperationResult.Canceled;
-                }
-
-                await Task.Yield();
-            }
-
-            onComplete?.Invoke();
-            return EAsyncOperationResult.Completed;
-        }
-
-        /// <summary>
-        /// Waits while time is up. Safe for using in playmode (returns 'Canceled by sytem' result on 
-        /// switching to editor mode)
-        /// </summary>
-        /// <param name="seconds">Delay in seconds</param>
-        /// <param name="cancelCondition">Use this parameter if you need to stop waiting</param>
-        /// <param name="skipFrames">Delay in frames between checking. Use for heavy tasks or for physics checking</param>
-        /// <returns></returns>
-        public static async Task<EAsyncOperationResult> Delay(float seconds, Func<bool> cancelCondition, byte skipFrames = 0)
-        {
-            return await Delay(seconds, cancelCondition, null, null, skipFrames);
-        }
-
-        /// <summary>
-        /// Waits while time is up. Safe for using in playmode (returns 'Canceled by sytem' result on 
-        /// switching to editor mode)
-        /// </summary>
-        /// <param name="seconds">Delay in seconds</param>
-        /// <param name="skipFrames">Delay in frames between checking. Use for heavy tasks or for physics checking</param>
-        /// <returns></returns>
-        public static async Task<EAsyncOperationResult> Delay(float seconds, byte skipFrames = 0)
-        {
-            return await Delay(seconds, null, null, null, skipFrames);
-        }
-
-        /// <summary>
-        /// Waits while time is up. Safe for using in playmode (returns 'Canceled by sytem' result on 
-        /// switching to editor mode)
-        /// </summary>
-        /// <param name="seconds">Delay in seconds</param>
-        /// <param name="cancelCondition"></param>
-        /// <param name="onComplete">Invokes when process is complete</param>
-        /// <param name="onCanceled">Invokes when process stopped by [cancel condition]</param>
-        /// <param name="skipFrames">Delay in frames between checking. Use for heavy tasks or for physics checking</param>
-        /// <returns></returns>
-        public static async Task<EAsyncOperationResult> DelayRealtime(float seconds, Func<bool> cancelCondition, Action onComplete, Action onCanceled, byte skipFrames = 0)
-        {
-            float endTime = Time.unscaledTime + seconds;
-
-            while (Time.unscaledTime < endTime)
-            {
-                if (skipFrames > 0)
-                {
-                    EAsyncOperationResult skipFramesResult = await SkipFrames(skipFrames);
-                    if (skipFramesResult == EAsyncOperationResult.CanceledBySystem)
-                        return EAsyncOperationResult.CanceledBySystem;
-                }
-
-                if (cancelCondition.Exist() && cancelCondition())
-                {
-                    onCanceled?.Invoke();
-                    return EAsyncOperationResult.Canceled;
-                }
-
-                await Task.Yield();
-            }
-
-            onComplete?.Invoke();
-            return EAsyncOperationResult.Completed;
-        }
-
-        /// <summary>
-        /// Waits while time is up. Safe for using in playmode (returns 'Canceled by sytem' result on 
-        /// switching to editor mode)
-        /// </summary>
-        /// <param name="seconds">Delay in seconds</param>
-        /// <param name="cancelCondition">Use this parameter if you need to stop waiting</param>
-        /// <param name="skipFrames">Delay in frames between checking. Use for heavy tasks or for physics checking</param>
-        /// <returns></returns>
-        public static async Task<EAsyncOperationResult> DelayRealtime(float seconds, Func<bool> cancelCondition, byte skipFrames = 0)
-        {
-            return await DelayRealtime(seconds, cancelCondition, null, null, skipFrames);
-        }
-
-        /// <summary>
-        /// Waits while time is up. Safe for using in playmode (returns 'Canceled by sytem' result on 
-        /// switching to editor mode)
-        /// </summary>
-        /// <param name="seconds">Delay in seconds</param>
-        /// <param name="skipFrames">Delay in frames between checking. Use for heavy tasks or for physics checking</param>
-        /// <returns></returns>
-        public static async Task<EAsyncOperationResult> DelayRealtime(float seconds, byte skipFrames = 0)
-        {
-            return await DelayRealtime(seconds, null, null, null, skipFrames);
-        }
-
-        /// <summary>
-        /// Waits for the specified number of frames
-        /// </summary>
-        /// <param name="frames">Frames to skip</param>
-        /// <param name="cancelCondition">Use this parameter if you need to stop waiting</param>
-        /// <param name="onComplete">Invokes when process is complete</param>
-        /// <param name="onCanceled">Invokes when process stopped by [cancel condition]</param>
-        /// <returns></returns>
-        public static async Task<EAsyncOperationResult> SkipFrames(byte frames, Func<bool> cancelCondition, Action onComplete, Action onCanceled)
-        {
-            byte skippedFrames = 0;
-            while (skippedFrames < frames)
-            {
-                if (ShouldBeCanceledBySystem())
-                {
-                    return EAsyncOperationResult.CanceledBySystem;
-                }
-
-                if (ShouldFreeze())
-                {
-                    continue;
-                }
-
-                skippedFrames++;
-
-                if (cancelCondition.Exist() && cancelCondition())
-                {
-                    onCanceled?.Invoke();
-                    return EAsyncOperationResult.Canceled;
-                }
-
-                await Task.Yield();
-            }
-
-            onComplete?.Invoke();
-            return EAsyncOperationResult.Completed;
-        }
-
-        /// <summary>
         /// Waits for the specified number of frames
         /// </summary>
         /// <param name="frames">Frames to skip</param>
@@ -176,183 +16,105 @@ namespace SimpleMan.AsyncOperations
         /// <returns></returns>
         public static async Task<EAsyncOperationResult> SkipFrames(byte frames, Func<bool> cancelCondition)
         {
-            return await SkipFrames(frames, cancelCondition, null, null);
+            while (frames > 0)
+            {
+                if (ShouldBeCanceledBySystem())
+                    return EAsyncOperationResult.CanceledBySystem;
+
+                if (cancelCondition.Exist() && cancelCondition())
+                    return EAsyncOperationResult.Canceled;
+
+                frames--;
+                await Task.Yield();
+            }
+
+            return EAsyncOperationResult.Completed;
         }
 
         /// <summary>
-        /// Waits for the specified number of frames
+        /// Waits while time is up. Safe for using in playmode (returns 'Canceled by sytem' result on 
+        /// switching to editor mode)
         /// </summary>
-        /// <param name="frames">Frames to skip</param>
-        /// <returns></returns>
-        public static async Task<EAsyncOperationResult> SkipFrames(byte frames)
-        {
-            return await SkipFrames(frames, null, null, null);
-        }
-
-        /// <summary>
-        /// Waits while [continue cycle condition] return true
-        /// </summary>
-        /// <param name="continueCycleCondition"></param>
+        /// <param name="seconds">Delay in seconds</param>
         /// <param name="cancelCondition">Use this parameter if you need to stop waiting</param>
-        /// <param name="onComplete">Invokes when process is complete</param>
-        /// <param name="onCanceled">Invokes when process stopped by [cancel condition]</param>
-        /// <param name="skipFrames">Frames to skip</param>
         /// <returns></returns>
-        /// <exception cref="ArgumentNullException"></exception>
-        public static async Task<EAsyncOperationResult> WaitWhile(Func<bool> continueCycleCondition, Action onComplete, byte skipFrames = 0)
+        public static async Task<EAsyncOperationResult> DelayRealtime(float seconds, Func<bool> cancelCondition)
         {
-            if (continueCycleCondition.NotExist())
-            {
-                throw new ArgumentNullException(nameof(continueCycleCondition));
-            }
+            Assert.TimeNonNegative(seconds);
 
-            while (continueCycleCondition.Invoke())
+            float timeLeft = seconds;
+            while(timeLeft > 0)
             {
-                if (skipFrames > 0)
-                {
-                    EAsyncOperationResult skipFramesResult = await SkipFrames(skipFrames);
-                    if (skipFramesResult == EAsyncOperationResult.CanceledBySystem)
-                        return EAsyncOperationResult.CanceledBySystem;
-                }
+                if (ShouldBeCanceledBySystem())
+                    return EAsyncOperationResult.CanceledBySystem;
 
+                if (cancelCondition.Exist() && cancelCondition())
+                    return EAsyncOperationResult.Canceled;
+
+                timeLeft -= Time.unscaledDeltaTime;
                 await Task.Yield();
             }
 
-            onComplete?.Invoke();
             return EAsyncOperationResult.Completed;
         }
 
         /// <summary>
-        /// Waits while [continue cycle condition] return true
+        /// Waits while the specified `condition` is true and then calls `onComplete` delegate.
+        /// Optionally skips `skipFrames` between each check of the `condition`.
         /// </summary>
-        /// <param name="continueCycleCondition"></param>
-        /// <param name="skipFrames">Frames to skip</param>
+        /// <param name="condition">Condition that should return false in order to stop the waiting process</param>
+        /// <param name="cancelCondition">Use this parameter if you need to stop waiting</param>
+        /// <param name="skipFrames">Optional parameter that indicates how many frames to skip between each check of the `condition`</param>
         /// <returns></returns>
-        public static async Task<EAsyncOperationResult> WaitWhile(Func<bool> continueCycleCondition, byte skipFrames = 0)
+        public static async Task<EAsyncOperationResult> WaitWhile(Func<bool> condition, Func<bool> cancelCondition, byte skipFrames = 0)
         {
-            return await WaitWhile(continueCycleCondition, null, skipFrames);
+            Assert.ConditionExist(condition);
+
+            while (condition())
+            {
+                EAsyncOperationResult waitFramesResult = await SkipFrames(skipFrames, cancelCondition);
+                if (waitFramesResult == EAsyncOperationResult.CanceledBySystem)
+                    return EAsyncOperationResult.CanceledBySystem;
+
+                if (ShouldBeCanceledBySystem())
+                    return EAsyncOperationResult.CanceledBySystem;
+
+                if (cancelCondition.Exist() && cancelCondition())
+                    return EAsyncOperationResult.Canceled;
+            }
+
+            return EAsyncOperationResult.Completed;
         }
 
         /// <summary>
-        /// Waits until [brake cycle condition] return true
+        /// Repeats an action while a condition is met. The time between each execution of the action can be adjusted using a custom time scale. 
+        /// The action will stop when the condition is no longer met and an optional completion action is invoked.
         /// </summary>
-        /// <param name="brakeCycleCondition"></param>
-        /// <param name="onComplete">Invokes when process is complete</param>
-        /// <param name="skipFrames">Frames to skip</param>
+        /// <param name="condition">The condition to be met while repeating the action</param>
+        /// <param name="cancelCondition">Use this parameter if you need to stop waiting</param>
+        /// <param name="onTick">The action to be executed repeatedly while the condition is met</param>
+        /// <param name="skipFrames">The number of frames to skip before executing the action again</param>
         /// <returns></returns>
-        /// <exception cref="ArgumentNullException"></exception>
-        public static async Task<EAsyncOperationResult> WaitUntil(Func<bool> brakeCycleCondition, Action onComplete, byte skipFrames = 0)
+        public static async Task<EAsyncOperationResult> RepeatWhile(Func<bool> condition, Func<bool> cancelCondition, Action onTick, byte skipFrames = 0)
         {
-            if (brakeCycleCondition.NotExist())
+            Assert.ConditionExist(condition);
+
+            while (condition())
             {
-                throw new ArgumentNullException(nameof(brakeCycleCondition));
-            }
-
-            return await WaitWhile(() => !brakeCycleCondition(), onComplete, skipFrames);
-        }
-
-        /// <summary>
-        /// Waits until [brake cycle condition] return true
-        /// </summary>
-        /// <param name="brakeCycleCondition"></param>
-        /// <param name="skipFrames">Frames to skip</param>
-        /// <returns></returns>
-        public static async Task<EAsyncOperationResult> WaitUntil(Func<bool> brakeCycleCondition, byte skipFrames = 0)
-        {
-            return await WaitUntil(brakeCycleCondition, null, skipFrames);
-        }
-
-        /// <summary>
-        /// Calls [on tick] delegate each [skip frames] frames while the [continue cycle condition] returning true
-        /// </summary>
-        /// <param name="continueCycleCondition"></param>
-        /// <param name="onTick">Called every tick (after each [skip frames] frames)</param>
-        /// <param name="onComplete">Invokes when process is complete</param>
-        /// <param name="skipFrames">Frames to skip</param>
-        /// <returns></returns>
-        /// <exception cref="ArgumentNullException"></exception>
-        public static async Task<EAsyncOperationResult> RepeatWhile(Func<bool> continueCycleCondition, Action onTick, Action onComplete, byte skipFrames = 0)
-        {
-            if (continueCycleCondition.NotExist())
-            {
-                throw new ArgumentNullException(nameof(continueCycleCondition));
-            }
-
-            if (onTick.NotExist())
-            {
-                throw new ArgumentNullException(nameof(onTick));
-            }
-
-            while (continueCycleCondition.Invoke())
-            {
-                if(skipFrames > 0)
-                {
-                    EAsyncOperationResult skipFramesResult = await SkipFrames(skipFrames);
-                    if (skipFramesResult == EAsyncOperationResult.CanceledBySystem)
-                        return EAsyncOperationResult.CanceledBySystem;
-                }
-
                 onTick?.Invoke();
-                await Task.Yield();
+
+                EAsyncOperationResult waitFramesResult = await SkipFrames(skipFrames, cancelCondition);
+                if (waitFramesResult == EAsyncOperationResult.CanceledBySystem)
+                    return EAsyncOperationResult.CanceledBySystem;
+
+                if (ShouldBeCanceledBySystem())
+                    return EAsyncOperationResult.CanceledBySystem;
+
+                if (cancelCondition.Exist() && cancelCondition())
+                    return EAsyncOperationResult.Canceled;
             }
 
-            onComplete?.Invoke();
             return EAsyncOperationResult.Completed;
-        }
-
-        /// <summary>
-        /// Calls [on tick] delegate each [skip frames] frames while the [continue cycle condition] returning true
-        /// </summary>
-        /// <param name="continueCycleCondition"></param>
-        /// <param name="onTick">Called every tick (after each [skip frames] frames)</param>
-        /// <param name="skipFrames">Frames to skip</param>
-        /// <returns></returns>
-        public static async Task<EAsyncOperationResult> RepeatWhile(Func<bool> continueCycleCondition, Action onTick, byte skipFrames = 0)
-        {
-            return await RepeatWhile(continueCycleCondition, onTick, null, skipFrames);
-        }
-
-        /// <summary>
-        /// Calls [on tick] delegate each [skip frames] frames until the [brake cycle condition] return true
-        /// </summary>
-        /// <param name="brakeCycleCondition"></param>
-        /// <param name="onTick">Called every tick (after each [skip frames] frames)</param>
-        /// <param name="onComplete">Invokes when process is complete</param>
-        /// <param name="skipFrames">Frames to skip</param>
-        /// <returns></returns>
-        /// <exception cref="ArgumentNullException"></exception>
-        public static async Task<EAsyncOperationResult> RepeatUntil(Func<bool> brakeCycleCondition, Action onTick, Action onComplete, byte skipFrames = 0)
-        {
-            if (brakeCycleCondition.NotExist())
-            {
-                throw new ArgumentNullException(nameof(brakeCycleCondition));
-            }
-
-            return await RepeatWhile(() => !brakeCycleCondition(), onTick, onComplete, skipFrames);
-        }
-
-        /// <summary>
-        /// Calls [on tick] delegate each [skip frames] frames until the [brake cycle condition] return true
-        /// </summary>
-        /// <param name="brakeCycleCondition"></param>
-        /// <param name="onTick">Called every tick (after each [skip frames] frames)</param>
-        /// <param name="onComplete">Invokes when process is complete</param>
-        /// <param name="skipFrames">Frames to skip</param>
-        /// <returns></returns>
-        /// <exception cref="ArgumentNullException"></exception>
-        public static async Task<EAsyncOperationResult> RepeatUntil(Func<bool> brakeCycleCondition, Action onTick, byte skipFrames = 0)
-        {
-            if (brakeCycleCondition.NotExist())
-            {
-                throw new ArgumentNullException(nameof(brakeCycleCondition));
-            }
-
-            return await RepeatWhile(() => !brakeCycleCondition(), onTick, null, skipFrames);
-        }
-
-        private static bool ShouldFreeze()
-        {
-            return Application.isFocused;
         }
 
         private static bool ShouldBeCanceledBySystem()

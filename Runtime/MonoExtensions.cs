@@ -292,9 +292,9 @@ namespace SimpleMan.AsyncOperations
         /// <param name="repeatAction">The action to be executed repeatedly</param>
         /// <param name="tickDilation">Time between ticks</param>
         /// <returns></returns>
-        public static Coroutine RepeatForeverCustomTimeScale(this MonoBehaviour owner, Action repeatAction, float tickDilation = 0)
+        public static Coroutine RepeatForever(this MonoBehaviour owner, Action repeatAction, float tickDilation = 0)
         {
-            return RepeatForever(owner, repeatAction, () => Time.timeScale, tickDilation);
+            return RepeatForeverCustomTimeScale(owner, repeatAction, () => Time.timeScale, tickDilation);
         }
 
         /// <summary>
@@ -306,7 +306,7 @@ namespace SimpleMan.AsyncOperations
         /// <returns></returns>
         public static Coroutine RepeatForeverRealtime(this MonoBehaviour owner, Action repeatAction, float tickDilation = 0)
         {
-            return RepeatForever(owner, repeatAction, () => 1, tickDilation);
+            return RepeatForeverCustomTimeScale(owner, repeatAction, () => 1, tickDilation);
         }
 
         /// <summary>
@@ -317,7 +317,7 @@ namespace SimpleMan.AsyncOperations
         /// <param name="timeScaleGetter">Use for pause or your custom time scale in project</param>
         /// <param name="tickDilation">Time between ticks</param>
         /// <returns></returns>
-        public static Coroutine RepeatForever(this MonoBehaviour owner, Action repeatAction, Func<float> timeScaleGetter, float tickDilation = 0)
+        public static Coroutine RepeatForeverCustomTimeScale(this MonoBehaviour owner, Action repeatAction, Func<float> timeScaleGetter, float tickDilation = 0)
         {
             Assert.OnwerExist(owner);
             return owner.StartCoroutine(RepeatWhileProcess(() => true, timeScaleGetter, repeatAction, null, tickDilation));
