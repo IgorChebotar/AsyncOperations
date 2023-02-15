@@ -1,17 +1,14 @@
-# Simple Man: Async operations  [Download](https://github.com/IgorChebotar/Utilities/releases)
+# Simple Man: Async operations
 Start your coroutines and async operations by single line of code! You don't need to write IEnumerators and custom callbacks anymore. This pack already have 
 default templates like 'Delay', 'Wait until', 'Repeat while' and other.
 <br>
 <br>
-**Author:** Igor-Valerii Chebotar 
+[Igor-Valerii Chebotar](https://www.linkedin.com/in/igor-chebotar/)
 <br>
 **Email:**  igor.valerii.chebotar@gmail.com
 
 ## Dependencies
 * [Simple Man - Utilities](https://github.com/IgorChebotar/Utilities)
-
-## How to install plugin?
-Open installer by the click on Tools -> Simple Man -> Main Installer -> [Plugins' name] -> Click 'Install' button. If you don't have one or more of the plugins this plugin depends on, you must install them first.
 
 
 ### MonoBehavior methods
